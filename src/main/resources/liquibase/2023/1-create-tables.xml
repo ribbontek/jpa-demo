@@ -1,0 +1,592 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog logicalFilePath="src/main/resources/liquibase/2022/1-create-tables.xml"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+    <changeSet id="AppDefaultScripts" author="joel.mouritz">
+        <sql dbms="postgresql">
+            create schema if not exists jpademo;
+            alter schema jpademo owner to jpademo;
+            grant usage on schema jpademo to jpademo;
+            create extension if not exists "uuid-ossp";
+            drop type if exists jpademo.role_type_enum;
+            create type jpademo.role_type_enum as enum ('BASIC', 'STANDARD', 'PREMIUM', 'ADMIN', 'SYSTEM');
+        </sql>
+        <rollback>
+            drop schema if exists jpademo;
+            drop type if exists jpademo.role_type_enum;
+        </rollback>
+    </changeSet>
+
+    <changeSet id="CreateTables" author="joel.mouritz">
+        <!-- UserEntity -->
+        <createTable schemaName="jpademo" tableName="user">
+            <column name="user_id" type="BIGINT" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_user"/>
+            </column>
+            <column name="email" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="first_name" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_name" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="idp_user_name" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="idp_status" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deleted" type="Boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column name="modified_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueNumeric="0" name="version" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex indexName="ix_user_email" schemaName="jpademo" tableName="user">
+            <column name="email"/>
+            <column name="deleted"/>
+        </createIndex>
+
+        <createIndex indexName="ix_user_idp_user_name" schemaName="jpademo" tableName="user">
+            <column name="idp_user_name"/>
+            <column name="deleted"/>
+        </createIndex>
+
+        <!-- AddressTypeEntity -->
+        <createTable schemaName="jpademo" tableName="address_type">
+            <column autoIncrement="true" name="address_type_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_address_type"/>
+            </column>
+            <column name="code" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(1000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column name="modified_by" type="varchar(255)"/>
+            <column name="modified_at" type="timestamp(6)"/>
+            <column defaultValueNumeric="0" name="version" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deleted" type="Boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <insert schemaName="jpademo" tableName="address_type">
+            <column name="code">Residential</column>
+            <column name="description">Residential Address</column>
+            <column name="created_by">jpademo</column>
+        </insert>
+
+        <insert schemaName="jpademo" tableName="address_type">
+            <column name="code">Postal</column>
+            <column name="description">Postal Address</column>
+            <column name="created_by">jpademo</column>
+        </insert>
+
+        <!-- UserAddressEntity -->
+        <createTable schemaName="jpademo" tableName="user_address">
+            <column name="user_address_id" autoIncrement="true" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_user_address"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="address_type_id" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="line" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="suburb" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="state" type="varchar(25)"/>
+            <column name="postcode" type="varchar(15)"/>
+            <column name="country" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column name="modified_at" type="timestamp(6)"/>
+            <column defaultValueNumeric="0" name="version" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint
+                constraintName="ix_user_address__user_id__address_type_id"
+                schemaName="jpademo" tableName="user_address" columnNames="user_id, address_type_id"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_user_address__user"
+                baseTableSchemaName="jpademo" baseTableName="user_address" baseColumnNames="user_id"
+                referencedTableSchemaName="jpademo" referencedTableName="user" referencedColumnNames="user_id"
+                deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_user_address__address_type"
+                baseTableSchemaName="jpademo" baseTableName="user_address" baseColumnNames="address_type_id"
+                referencedTableSchemaName="jpademo" referencedTableName="address_type"
+                referencedColumnNames="address_type_id"
+                deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION"/>
+
+        <!-- ShoppingCartSessionEntity -->
+        <createTable schemaName="jpademo" tableName="shopping_cart_session">
+            <column name="shopping_cart_session_id" type="BIGINT" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_shopping_cart_session"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="shopping_cart_session_uuid" type="${uuid_type}">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="total" type="decimal(10, 2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column name="modified_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueNumeric="0" name="version" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_shopping_cart_session__user"
+                baseTableSchemaName="jpademo" baseTableName="shopping_cart_session" baseColumnNames="user_id"
+                referencedTableSchemaName="jpademo" referencedTableName="user" referencedColumnNames="user_id"
+                deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION"/>
+
+        <!-- ShoppingCartItemEntity -->
+        <createTable schemaName="jpademo" tableName="shopping_cart_item">
+            <column name="shopping_cart_item_id" type="BIGINT" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_shopping_cart_item"/>
+            </column>
+            <column name="shopping_cart_session_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="product_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="quantity" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column name="modified_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueNumeric="0" name="version" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_shopping_cart_session__shopping_cart_item"
+                baseTableSchemaName="jpademo" baseTableName="shopping_cart_item"
+                baseColumnNames="shopping_cart_session_id"
+                referencedTableSchemaName="jpademo" referencedTableName="shopping_cart_session"
+                referencedColumnNames="shopping_cart_session_id"
+                deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION"/>
+
+        <!-- CategoryEntity -->
+        <createTable schemaName="jpademo" tableName="category">
+            <column autoIncrement="true" name="category_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_category"/>
+            </column>
+            <column name="code" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(1000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column name="modified_at" type="timestamp(6)"/>
+            <column defaultValueNumeric="0" name="version" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deleted" type="Boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <insert schemaName="jpademo" tableName="category">
+            <column name="code">CLOTHING</column>
+            <column name="description">Clothing</column>
+        </insert>
+
+        <insert schemaName="jpademo" tableName="category">
+            <column name="code">FOOTWEAR</column>
+            <column name="description">Footwear</column>
+        </insert>
+
+        <insert schemaName="jpademo" tableName="category">
+            <column name="code">COMPUTERS</column>
+            <column name="description">Computers</column>
+        </insert>
+
+        <insert schemaName="jpademo" tableName="category">
+            <column name="code">COMPUTERS_SOFTWARE</column>
+            <column name="description">Software</column>
+        </insert>
+
+        <insert schemaName="jpademo" tableName="category">
+            <column name="code">COMPUTERS_NETWORKING</column>
+            <column name="description">Networking</column>
+        </insert>
+
+        <!-- DiscountEntity -->
+        <createTable schemaName="jpademo" tableName="discount">
+            <column autoIncrement="true" name="discount_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_discount"/>
+            </column>
+            <column name="discount_uuid" type="${uuid_type}">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="code" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="discount" type="decimal(2, 2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="timestamp(6)"/>
+            <column name="created_by" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column name="modified_by" type="varchar(255)"/>
+            <column name="modified_at" type="timestamp(6)"/>
+            <column defaultValueNumeric="0" name="version" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deleted" type="Boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- ProductEntity -->
+        <createTable schemaName="jpademo" tableName="product">
+            <column name="product_id" type="BIGINT" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_product"/>
+            </column>
+            <column name="product_uuid" type="${uuid_type}">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="discount_id" type="BIGINT"/>
+            <column name="category_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="quantity" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="price" type="decimal(10, 2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sku" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deleted" type="Boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column name="modified_by" type="varchar(255)"/>
+            <column name="modified_at" type="timestamp(6)"/>
+            <column defaultValueNumeric="0" name="version" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_product__discount"
+                baseTableSchemaName="jpademo" baseTableName="product" baseColumnNames="discount_id"
+                referencedTableSchemaName="jpademo" referencedTableName="discount" referencedColumnNames="discount_id"
+                deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_product__category"
+                baseTableSchemaName="jpademo" baseTableName="product" baseColumnNames="category_id"
+                referencedTableSchemaName="jpademo" referencedTableName="category" referencedColumnNames="category_id"
+                deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION"/>
+
+        <!-- PaymentEntity -->
+        <createTable schemaName="jpademo" tableName="payment">
+            <column name="payment_id" type="BIGINT" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_payment"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reference" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount" type="decimal(10, 2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="provider" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column name="modified_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueNumeric="0" name="version" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_payment__user"
+                baseTableSchemaName="jpademo" baseTableName="payment" baseColumnNames="user_id"
+                referencedTableSchemaName="jpademo" referencedTableName="user" referencedColumnNames="user_id"
+                deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION"/>
+
+        <!-- OrderSessionEntity -->
+        <createTable schemaName="jpademo" tableName="order_session">
+            <column name="order_session_id" type="BIGINT" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_order"/>
+            </column>
+            <column name="order_session_uuid" type="${uuid_type}">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payment_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total" type="decimal(10, 2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column name="modified_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueNumeric="0" name="version" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_order_session__user"
+                baseTableSchemaName="jpademo" baseTableName="order_session" baseColumnNames="user_id"
+                referencedTableSchemaName="jpademo" referencedTableName="user" referencedColumnNames="user_id"
+                deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_order_session__payment"
+                baseTableSchemaName="jpademo" baseTableName="order_session" baseColumnNames="payment_id"
+                referencedTableSchemaName="jpademo" referencedTableName="payment" referencedColumnNames="payment_id"
+                deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION"/>
+
+        <!-- OrderItemEntity -->
+        <createTable schemaName="jpademo" tableName="order_item">
+            <column name="order_item_id" type="BIGINT" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_order_item"/>
+            </column>
+            <column name="order_session_id" type="BIGINT">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="product_id" type="BIGINT">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="quantity" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="price" type="decimal(10, 2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column name="modified_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueNumeric="0" name="version" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_order_item__order_session"
+                baseTableSchemaName="jpademo" baseTableName="order_item" baseColumnNames="order_session_id"
+                referencedTableSchemaName="jpademo" referencedTableName="order_session" referencedColumnNames="order_session_id"
+                deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_order_item__product"
+                baseTableSchemaName="jpademo" baseTableName="order_item" baseColumnNames="product_id"
+                referencedTableSchemaName="jpademo" referencedTableName="product" referencedColumnNames="product_id"
+                deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION"/>
+
+        <createView viewName="vw_user" replaceIfExists="true" schemaName="jpademo">
+            SELECT *
+            FROM jpademo.user
+            where deleted = false;
+        </createView>
+
+        <createTable schemaName="jpademo" tableName="role">
+            <column name="role_id" type="BIGINT" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_role"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="display_name" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role_type" type="jpademo.role_type_enum">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column name="modified_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueNumeric="0" name="version" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_user__role"
+                baseTableSchemaName="jpademo" baseTableName="role" baseColumnNames="user_id"
+                referencedTableSchemaName="jpademo" referencedTableName="user" referencedColumnNames="user_id"
+                deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION"/>
+
+        <createTable schemaName="jpademo" tableName="policy">
+            <column name="policy_id" type="BIGINT" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_policy"/>
+            </column>
+            <column name="permission" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column name="modified_at" type="timestamp(6)" defaultValueComputed="${datetime.current}">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueNumeric="0" name="version" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- ManyToMany Mapping Table RoleToPolicy -->
+        <createTable schemaName="jpademo" tableName="role_to_policy">
+            <column name="role_to_policy_id" type="BIGINT" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_role_to_policy"/>
+            </column>
+            <column name="role_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="policy_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_role_to_policy__role"
+                baseTableSchemaName="jpademo" baseTableName="role_to_policy" baseColumnNames="role_id"
+                referencedTableSchemaName="jpademo" referencedTableName="role" referencedColumnNames="role_id"
+                deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_role_to_policy__policy"
+                baseTableSchemaName="jpademo" baseTableName="role_to_policy" baseColumnNames="policy_id"
+                referencedTableSchemaName="jpademo" referencedTableName="policy" referencedColumnNames="policy_id"
+                deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION"/>
+
+        <createView viewName="vw_jpademo_view_table_usage" replaceIfExists="true" schemaName="public">
+            SELECT DISTINCT current_database()::information_schema.sql_identifier AS view_catalog,
+                    nv.nspname::information_schema.sql_identifier         AS view_schema,
+                    v.relname::information_schema.sql_identifier          AS view_name,
+                    current_database()::information_schema.sql_identifier AS table_catalog,
+                    nt.nspname::information_schema.sql_identifier         AS table_schema,
+                    t.relname::information_schema.sql_identifier          AS table_name
+            FROM pg_namespace nv,
+                 pg_class v,
+                 pg_depend dv,
+                 pg_depend dt,
+                 pg_class t,
+                 pg_namespace nt
+            WHERE nv.oid = v.relnamespace
+                AND v.relkind = 'v'::"char"
+                AND v.oid = dv.refobjid
+                AND dv.refclassid = 'pg_class'::regclass::oid
+                AND dv.classid = 'pg_rewrite'::regclass::oid
+                AND dv.deptype = 'i'::"char"
+                AND dv.objid = dt.objid
+                AND dv.refobjid != dt.refobjid
+                AND dt.classid = 'pg_rewrite'::regclass::oid
+                AND dt.refclassid = 'pg_class'::regclass::oid
+                AND dt.refobjid = t.oid
+                AND t.relnamespace = nt.oid
+                AND (t.relkind = ANY (ARRAY ['r'::"char", 'v'::"char", 'f'::"char", 'p'::"char"]))
+                AND nv.nspname::information_schema.sql_identifier = 'jpademo';
+        </createView>
+
+        <sql dbms="postgresql">
+            GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA jpademo TO jpademo;
+            GRANT SELECT ON public.vw_jpademo_view_table_usage TO jpademo;
+        </sql>
+
+        <rollback>
+            <sql dbms="postgresql">
+                REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA jpademo from jpademo;
+                REVOKE SELECT ON public.vw_jpademo_view_table_usage. TO jpademo;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
