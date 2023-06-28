@@ -15,7 +15,7 @@ import java.util.UUID
 @Entity
 @Table(name = "product")
 @AttributeOverride(name = "id", column = Column(name = "product_id"))
-@SQLDelete(sql = "update product set deleted = true where product_id = ?")
+@SQLDelete(sql = "update product set deleted = true where product_id = ? and version = ?")
 data class ProductEntity(
     @Column(nullable = false, unique = true, name = "product_uuid")
     val requestId: UUID,

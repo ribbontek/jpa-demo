@@ -13,7 +13,7 @@ import org.hibernate.annotations.SQLDelete
 @Entity
 @Table(name = "vw_user")
 @AttributeOverride(name = "id", column = Column(name = "user_id"))
-@SQLDelete(sql = "update jpademo.vw_user set deleted = true where user_id = ?")
+@SQLDelete(sql = "update jpademo.vw_user set deleted = true where user_id = ? and version = ?")
 data class UserEntity(
     @Column(nullable = false, length = 255)
     val email: String,

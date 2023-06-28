@@ -13,7 +13,7 @@ import java.util.UUID
 @Entity
 @Table(name = "discount")
 @AttributeOverride(name = "id", column = Column(name = "discount_id"))
-@SQLDelete(sql = "update discount set deleted = true where discount_id = ?")
+@SQLDelete(sql = "update discount set deleted = true where discount_id = ? and version = ?")
 data class DiscountEntity(
     @Column(nullable = false, unique = true, name = "discount_uuid")
     val requestId: UUID,
