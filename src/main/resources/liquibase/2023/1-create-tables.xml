@@ -589,4 +589,22 @@
         </rollback>
     </changeSet>
 
+    <changeSet author="joel.mouritz" id="user_has_role_function">
+        <sql splitStatements="false">
+            create or replace function jpademo.has_role(
+                    in userId bigint,
+                    in roleType varchar
+                )
+                returns boolean as
+            $$
+            begin
+                return exists (
+                    select 1
+                    from jpademo.role r
+                    where r.user_id = userId and r.role_type = roleType::role_type_enum
+                );
+            end;
+            $$ language plpgsql;
+        </sql>
+    </changeSet>
 </databaseChangeLog>

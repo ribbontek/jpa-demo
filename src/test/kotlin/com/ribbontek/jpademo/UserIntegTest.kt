@@ -2,6 +2,7 @@ package com.ribbontek.jpademo
 
 import com.ribbontek.jpademo.context.AbstractIntegTest
 import com.ribbontek.jpademo.generator.UserGenerator
+import com.ribbontek.jpademo.repository.user.RoleType.ADMIN
 import com.ribbontek.jpademo.repository.user.UserRepository
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
@@ -43,5 +44,12 @@ class UserIntegTest : AbstractIntegTest() {
         assertNotNull(user)
         userRepository.delete(user)
         assertNull(userRepository.findByIdOrNull(user.id))
+    }
+
+    @Test
+    fun `checks an admin user role`() {
+        val (user, _) = userGenerator.generateAdmin()
+        val userEntity = userRepository.findUserHavingRole(user.id!!, ADMIN.name)
+        assertNotNull(userEntity)
     }
 }
